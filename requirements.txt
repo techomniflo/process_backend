@@ -1,0 +1,15 @@
+fastapi===0.109.0
+aiomysql==0.2.0
+databases==0.8.0
+uvicorn[standard]
+openai==1.10.0
+pytz
+requests-toolbelt
+boto3
+pillow==10.2.0
+backoff
+python-magic
+httpx
+requests
+python-multipart
+rq
