@@ -19,7 +19,7 @@ async def lifespan(_app: FastAPI):
     await DB.disconnect()
 
 
-redis_conn = Redis(host="localhost",port=6379,decode_responses=True)
+redis_conn = Redis(host="127.0.0.1",port=6379,decode_responses=True)
 task_queue = Queue("task_queue",connection=redis_conn)
     
 
