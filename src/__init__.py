@@ -1,5 +1,7 @@
 import json
 import os
+from redis import Redis
+from rq import Queue
 
 script_dir = os.path.dirname(__file__)
 config_path = os.path.join(script_dir, 'config.json')
@@ -12,7 +14,7 @@ if not os.path.exists(config_path):
             "MYSQL_STRING": "mysql://root:put_your_password@localhost/beagle",
             "OPENAI_API_KEY": "your_default_openai_api_key"
         }
-        json.dump(default_data, config_file)
+        json.dump(default_data, config_file,indent=4)
 
 with open(config_path) as config_file:
     config=json.load(config_file)
@@ -21,3 +23,7 @@ MYSQL_STRING=config.get("MYSQL_STRING")
 OPENAI_API_KEY=config.get("OPENAI_API_KEY")
 AWS_ACCESS_KEY_ID=config.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY=config.get("AWS_SECRET_ACCESS_KEY")
+
+#Redis part
+redis_conn = Redis(host="127.0.0.1",port=6379,decode_responses=True)
+task_queue = Queue("task_queue",connection=redis_conn)

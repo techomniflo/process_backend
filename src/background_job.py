@@ -8,6 +8,7 @@ from src.file_type import add_file_tag_to_db,get_file_tag
 from src.claude import invoke_model
 from src.db import DB
 from src.utils import ist_datetime_current,generate_unique_string
+from src import task_queue
 
 logging.basicConfig(level=logging.INFO)  # Set the logging level
 logger = logging.getLogger(__name__)
@@ -136,12 +137,10 @@ async def update_json_to_table(id,processed_json):
     async with DB.transaction():
         values={'processed_json':processed_json,"id":id,"modified":current_time}
         id=await DB.execute("""UPDATE ProcessedReceipt SET processed_json = :processed_json, modified = :modified WHERE id = :id""", values=values)
-
-async def background_task_after_softupload(id:int,file_content:bytes):
-    await DB.connect()
-    file_type,file_sub_type = await get_file_tag(file_content)
-    await add_file_tag_to_db(id,file_type,file_sub_type)
-
+  
+async def process_file(id,file_type,file_content):
+    if not DB.is_connected:
+        await DB.connect()
     if file_type=='EMF':
         prc_rec_id,processed_text=await process_emf.process_receipt(id,file_content)
     elif file_type=='ESC/P':
@@ -150,7 +149,12 @@ async def background_task_after_softupload(id:int,file_content:bytes):
         prc_rec_id,processed_text= await process_xps.process_receipt(id,file_content)
     else:
         return
+    
+    task_queue.enqueue(parse_file,prc_rec_id,processed_text)
 
+async def parse_file(prc_rec_id,processed_text):
+    if not DB.is_connected:
+        await DB.connect()
     if prc_rec_id and processed_text:
         processed_json = await run_in_threadpool(lambda:invoke_model(processed_text))
         await update_json_to_table(prc_rec_id,processed_json)
@@ -166,3 +170,10 @@ async def background_task_after_softupload(id:int,file_content:bytes):
         parsed_items = await type_correction(parsed_items)
         if parsed_items:
             await insert_parsed_items(parsed_items)
+
+async def tag_file(id:int,file_content:bytes):
+    if not DB.is_connected:
+        await DB.connect()
+    file_type,file_sub_type = await get_file_tag(file_content)
+    await add_file_tag_to_db(id,file_type,file_sub_type)
+    task_queue.enqueue(process_file,id,file_type,file_content)

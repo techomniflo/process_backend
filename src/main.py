@@ -7,21 +7,17 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.s3 import upload_to_s3
+from src import task_queue
 from redis import Redis
 from rq import Queue
 
-from src.background_job import background_task_after_softupload
+from src.background_job import tag_file
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     await DB.connect()
     # await initialize_tables(DB)
     yield
     await DB.disconnect()
-
-
-redis_conn = Redis(host="127.0.0.1",port=6379,decode_responses=True)
-task_queue = Queue("task_queue",connection=redis_conn)
-    
 
 app=FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -92,5 +88,5 @@ async def post_heartbeat(request:Request,file: UploadFile = File(...)):
 @app.post("/process")
 async def process(softupload_id:int,file: UploadFile = File(...)):
     file_content = await file.read()
-    job_id=task_queue.enqueue(background_task_after_softupload,softupload_id,file_content)
+    job_id=task_queue.enqueue(tag_file,softupload_id,file_content)
     return 
