@@ -34,7 +34,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
         """
         async with httpx.AsyncClient() as client:
             url="https://converter.beaglenetwork.com/xps2png"
-            response= await client.post(url, files={"file": file_content})
+            response= await client.post(url, files={"file": file_content},timeout=20.0)
             if response.status_code == 200:
                 filename=f"{id}.png"
                 image_path="processed_images/"+filename
@@ -50,7 +50,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
         """
         async with httpx.AsyncClient() as client:
             url="https://converter.beaglenetwork.com/xps2txt"
-            response =await client.post(url, files={"file": (f"{id}.xps",file_content)})
+            response =await client.post(url, files={"file": (f"{id}.xps",file_content)},timeout=20.0)
             if response.status_code == 200:
                 if len(response.text)>10:
                     text_from_xps=response.text
