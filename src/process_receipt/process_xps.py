@@ -52,7 +52,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
             url="https://converter.beaglenetwork.com/xps2txt"
             response =await client.post(url, files={"file": (f"{id}.xps",file_content)})
             if response.status_code == 200:
-                if len(response.text)<5:
+                if len(response.text)>10:
                     text_from_xps=response.text
                     iv['processed_text']=text_from_xps
                     iv['is_processed']=1

@@ -191,7 +191,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
         if emf.is_emf:
             try:
                 async with httpx.AsyncClient() as client:
-                    url="https://converter.beaglenetwork.com/emfspool_to_png"
+                    url="https://converter.beaglenetwork.com/spl2png"
                     response=await client.post(url, files={"file": file_content})
                     # Checking the response
                     if response.status_code == 200:
