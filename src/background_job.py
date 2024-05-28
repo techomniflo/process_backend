@@ -3,7 +3,7 @@ import json
 import logging,asyncio
 from fastapi.concurrency import run_in_threadpool
 
-from src.process_receipt import process_emf,process_esc_p,process_xps
+from src.process_receipt import process_emf,process_esc_p,process_xps,process_pdf
 from src.file_type import add_file_tag_to_db,get_file_tag
 from src.claude import invoke_model
 from src.db import DB
@@ -147,6 +147,8 @@ async def process_file(id,file_type,file_content):
         prc_rec_id,processed_text=await process_esc_p.process_receipt(id,file_content)
     elif file_type=='XPS':
         prc_rec_id,processed_text= await process_xps.process_receipt(id,file_content)
+    elif file_type=='PDF':
+        prc_rec_id,processed_text= await process_pdf.process_receipt(id,file_content)
     else:
         return
     
