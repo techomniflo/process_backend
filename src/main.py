@@ -5,11 +5,14 @@ from .db import DB
 from src.utils import generate_unique_string,ist_datetime_current
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from redis import Redis
+from rq import Queue
+from typing import Optional
+import httpx
 
 from src.s3 import upload_to_s3
 from src import task_queue
-from redis import Redis
-from rq import Queue
+
 
 from src.background_job import tag_file
 @asynccontextmanager
@@ -85,8 +88,32 @@ async def post_heartbeat(request:Request,file: UploadFile = File(...)):
         raise HTTPException(status_code=500,detail=str(e))
     return {"id":id,"ip":client_ip}
 
+async def get_beaglesoftupload_with_id(id:int):
+    values={"id":id}
+    soft_upload = await DB.fetch_one("select * from SoftUpload where id=:id",values=values)
+    return soft_upload
+
+async def download_file_content(url:str):
+    try:
+        async with httpx.AsyncClient() as client:
+            response=await client.get(url,timeout=20.0)
+            return response.content
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"error occured {str(e)} for fetching content for url: {url}")        
+
+async def get_file_content_from_softupload_id(id:int):
+    softupload=await get_beaglesoftupload_with_id(id)
+    if softupload:
+        file_content = await download_file_content(softupload["file_link"])
+        return file_content
+    else:
+        raise HTTPException(status_code=404, detail=f"No entry found in database for Table softupload for id {id}")
+
 @app.post("/process")
-async def process(softupload_id:int,file: UploadFile = File(...)):
-    file_content = await file.read()
+async def process(softupload_id:int,file: UploadFile = File(None)):
+    if file:
+        file_content = await file.read()
+    else:
+        file_content = await get_file_content_from_softupload_id(softupload_id)
     job_id=task_queue.enqueue(tag_file,softupload_id,file_content)
-    return 
+    return
