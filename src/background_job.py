@@ -152,7 +152,7 @@ async def process_file(id,file_type,file_content):
     else:
         return
     
-    task_queue.enqueue(parse_file,prc_rec_id,processed_text)
+    # task_queue.enqueue(parse_file,prc_rec_id,processed_text)
 
 async def parse_file(prc_rec_id,processed_text):
     if not DB.is_connected:

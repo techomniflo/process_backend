@@ -13,3 +13,4 @@ httpx
 requests
 python-multipart
 rq
+azure-storage-blob
