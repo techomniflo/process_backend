@@ -6,7 +6,7 @@ import httpx
 import logging
 
 from src.db import DB
-from src.s3 import upload_to_s3
+from src.s3 import upload_to_azure
 from src.utils import ist_datetime_current
 logging.basicConfig(level=logging.INFO)  # Set the logging level
 logger = logging.getLogger(__name__)
@@ -197,8 +197,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
                     if response.status_code == 200:
                         filename=f"{id}.png"
                         image_path="processed_images/"+filename
-                        image_link='https://beaglebucket.s3.amazonaws.com/'+image_path
-                        upload_to_s3(response.content,image_path)
+                        image_link=upload_to_azure(response.content,image_path)
                         iv['image_link']=image_link
                         iv["image_path"]=image_path
             except httpx.TimeoutException as exc:

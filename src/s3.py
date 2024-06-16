@@ -5,7 +5,7 @@ def upload_to_azure(content,filepath):
     from src import AZURE_CONNECTION_STRING,AZURE_CONTAINER
     blob = BlobClient.from_connection_string(conn_str=AZURE_CONNECTION_STRING, container_name=AZURE_CONTAINER, blob_name=filepath)
     blob.upload_blob(content)
-    return blob.url
+    return f"http://static.beaglenetwork.com/{AZURE_CONTAINER}/{filepath}"
 
 def upload_to_s3(content,filename):
     from src import AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY

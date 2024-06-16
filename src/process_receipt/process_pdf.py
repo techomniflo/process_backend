@@ -5,7 +5,7 @@ import logging
 
 from src.utils import ist_datetime_current
 from src.db import DB
-from src.s3 import upload_to_s3
+from src.s3 import upload_to_azure
 
 logging.basicConfig(level=logging.INFO)  # Set the logging level
 logger = logging.getLogger(__name__)
@@ -38,9 +38,9 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
             if response.status_code == 200:
                 filename=f"{id}.png"
                 image_path="processed_images/"+filename
-                image_link='https://beaglebucket.s3.amazonaws.com/'+image_path
-                # Upload to S3
-                upload_to_s3(response.content,image_path)
+                
+                # Upload to AZure Blob
+                image_link=upload_to_azure(response.content,image_path)
                 iv["image_link"]=image_link
                 iv["image_path"]=image_path
 
