@@ -1,6 +1,5 @@
 fastapi===0.109.0
 aiomysql==0.2.0
-databases==0.8.0
 uvicorn[standard]
 openai==1.10.0
 pytz
@@ -14,3 +13,4 @@ requests
 python-multipart
 rq
 azure-storage-blob
+sqlalchemy==2.0.31

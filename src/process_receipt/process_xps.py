@@ -1,26 +1,27 @@
-from typing import Optional, Tuple , Union
+from typing import Dict ,Any
 import httpx
 import asyncio
 import logging
 
 from src.utils import ist_datetime_current
-from src.db import DB
 from src.s3 import upload_to_azure
 
 logging.basicConfig(level=logging.INFO)  # Set the logging level
 logger = logging.getLogger(__name__)
 
 
-async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], Tuple[bool, bool] , Tuple[int,None]]:
+async def process_receipt(id:int,file_content:bytes) -> Dict[str, Any]:
     """
-    Process a receipt file asynchronously.
-
+    Processes a receipt by converting an XPS file to a PNG image and extracting text from it.
+    
     Args:
-        id (int): The ID of the SoftUpload Table.
-        file_content (bytes): The content of the receipt file.
-
+        id (int): The ID of the receipt to process.
+        file_content (bytes): The content of the XPS file to process.
+    
     Returns:
-        Union[Tuple[int, str], Tuple[bool, bool], Tuple[int, None]]: A tuple containing processed information or status.
+        Dict[str, Any]: A dictionary containing metadata about the processing,
+                        including creation and modification times, image link,
+                        image path, whether the text was processed, and the processed text.
     """
 
     current_time=ist_datetime_current()
@@ -65,17 +66,4 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
     except httpx.RequestError as exc:
         logger.error("Request error: %s", exc)
     
-    # If either image link or processed text is available, insert into the database
-    if iv["image_link"] or iv["processed_text"]:
-        async with DB.transaction():
-            id=await DB.execute("INSERT INTO ProcessedReceipt (creation,modified,softupload_id,image_link,image_path,is_processed,processed_text) VALUES (:creation,:modified,:softupload_id,:image_link,:image_path,:is_processed,:processed_text)", values=iv)
-
-    if iv["processed_text"]:
-         return (id,iv["processed_text"])
-    
-    return (False,False)
-    
-    
-
-    
-
+    return iv

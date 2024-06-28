@@ -1,8 +1,6 @@
-from typing import Optional, Tuple , Union
+from typing import Dict, Any
 
 from src.utils import ist_datetime_current
-from src.db import DB
-
 
 
 def is_utf8(byte):
@@ -20,15 +18,12 @@ def replace_non_utf8_with_space(byte):
     else:
         return ''
     
-async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], Tuple[bool, bool]]:
+async def process_receipt(id:int,file_content:bytes) -> Dict[str, Any]:
     processed_text=""
     for i in file_content:
         processed_text+=replace_non_utf8_with_space(i)
     current_time=ist_datetime_current()
     iv={"creation":current_time,"modified":current_time,"softupload_id":id,'is_processed':1,"processed_text":processed_text}
 
-    async with DB.transaction():
-            id=await DB.execute("INSERT INTO ProcessedReceipt (creation,modified,softupload_id,is_processed,processed_text) VALUES (:creation,:modified,:softupload_id,:is_processed,:processed_text)", values=iv)
-
-    return (id,processed_text)
+    return iv
 

@@ -1,11 +1,11 @@
 import struct
 from PIL import Image, ImageDraw, ImageFont
 import io
-from typing import Optional, Tuple , Union
+from typing import Dict,Any
 import httpx
 import logging
 
-from src.db import DB
+from src.db import SessionLocal,ProcessedReceipt
 from src.s3 import upload_to_azure
 from src.utils import ist_datetime_current
 logging.basicConfig(level=logging.INFO)  # Set the logging level
@@ -176,7 +176,20 @@ def emf_data_to_string(emf_data_list):
 
 
 
-async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], Tuple[bool, bool]]:
+async def process_receipt(id:int,file_content:bytes) -> Dict[str,Any]:
+    """
+    Processes a receipt by converting an SPOOL EMF file to a PNG image and extracting text from it.
+    
+    Args:
+        id (int): The ID of the receipt to process.
+        file_content (bytes): The content of the XPS file to process.
+    
+    Returns:
+        Dict[str, Any]: A dictionary containing metadata about the processing,
+                        including creation and modification times, image link,
+                        image path, whether the text was processed, and the processed text.
+    """
+
     current_time=ist_datetime_current()
     text_from_image=None
     iv={"creation":current_time,"modified":current_time,"softupload_id":id,"image_link":None,"image_path":None,'is_processed':0,"processed_text":None}
@@ -186,7 +199,7 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
             emf=EMF(file_content)
             emf_data=emf.emf_data
         except Exception as e:
-            return (False,False)
+            return iv
 
         if emf.is_emf:
             try:
@@ -213,10 +226,10 @@ async def process_receipt(id:int,file_content:bytes) -> Union[Tuple[int, str], T
             iv['is_processed']=1
         
         if iv['processed_text'] or iv["image_link"]:
-
-            async with DB.transaction():
-                    id=await DB.execute("INSERT INTO ProcessedReceipt (creation,modified,softupload_id,image_link,image_path,is_processed,processed_text) VALUES (:creation,:modified,:softupload_id,:image_link,:image_path,:is_processed,:processed_text)", values=iv)
-                    
-        if text_from_image:
-            return (id,text_from_image)
-    return (False,False)
+            async with SessionLocal() as session:
+                async with session.begin():
+                    process_receipt=ProcessedReceipt(**iv)
+                    session.add(process_receipt)
+                    await session.commit()
+                    id=process_receipt.id
+    return iv

@@ -2,8 +2,8 @@ import struct
 import magic
 from typing import Union,Tuple,Optional
 
-from src.db import DB
 from src.utils import ist_datetime_current,generate_unique_string
+from src.db import SessionLocal,TagSoftUpload
 
 
 class EMF:
@@ -55,7 +55,6 @@ class EMF:
 def is_pdf(file_content:bytes):
     file_type = magic.from_buffer(file_content, mime=True)
     if file_type=="application/pdf":
-        print(file_type)
         return True
     return False
 
@@ -94,11 +93,8 @@ async def get_file_tag(file_content:bytes) -> Tuple[str, Optional[str]]:
 
 async def add_file_tag_to_db(id:int,file_type:str,file_sub_type):
     if file_type:
-        values={"creation":ist_datetime_current(), "softupload_id":id, "type":file_type, "sub_type":file_sub_type}
-        insert_query = """INSERT INTO TagSoftUpload 
-                                (creation, softupload_id, type, sub_type) 
-                                VALUES 
-                                (:creation, :softupload_id, :type, :sub_type)"""
-
-        async with DB.transaction():
-            await DB.execute(insert_query,values)
+        async with SessionLocal() as session:
+            async with session.begin():
+                tag_softupload=TagSoftUpload(creation=ist_datetime_current(),softupload_id=id,type=file_type,sub_type=file_sub_type)
+                session.add(tag_softupload)
+                await session.commit()
